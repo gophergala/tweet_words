@@ -1,6 +1,5 @@
 package tweet_words
 
-
 import (
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/robfig/config"
@@ -58,35 +57,34 @@ func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anac
 }
 
 func StoreTweets(query url.Values, timeout time.Duration, collectionName string) (retChan chan bool) {
- retChan = make(chan bool)
- quit := make(chan bool)
- z := Tweets(query, timeout, quit)
- go func() {
- 	mgoSession, err := mgo.Dial(conf["MONGO"])
- 	if err != nil {
- 		panic(err)
- 	}
-  mgoSession.SetMode(mgo.Monotonic, true)
-  defer mgoSession.Close()
-	for {
-		select {
-		case x := <-z:
-			newSes := mgoSession.Copy()
-			defer newSes.Close()
-			col := newSes.DB("test").C(collectionName)
-			if (col == nil) {
-				panic("unable to get collection")
-			}
-			err = col.Insert(x)
-			if err != nil {
-				panic(err)
-			}
-		case <-quit:
-			retChan <- true
-			return
+	retChan = make(chan bool)
+	quit := make(chan bool)
+	z := Tweets(query, timeout, quit)
+	go func() {
+		mgoSession, err := mgo.Dial(conf["MONGO"])
+		if err != nil {
+			panic(err)
 		}
-	}
- }()
- return
+		mgoSession.SetMode(mgo.Monotonic, true)
+		defer mgoSession.Close()
+		for {
+			select {
+			case x := <-z:
+				newSes := mgoSession.Copy()
+				defer newSes.Close()
+				col := newSes.DB("test").C(collectionName)
+				if col == nil {
+					panic("unable to get collection")
+				}
+				err = col.Insert(x)
+				if err != nil {
+					panic(err)
+				}
+			case <-quit:
+				retChan <- true
+				return
+			}
+		}
+	}()
+	return
 }
-
