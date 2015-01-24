@@ -5,8 +5,6 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/robfig/config"
 	"gopkg.in/mgo.v2"
-	//	"gopkg.in/mgo.v2/bson"
-	"fmt"
 	"net/url"
 	"time"
 )
@@ -59,15 +57,17 @@ func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anac
 	return tweetChan
 }
 
-func StoreTweets(query url.Values, timeout time.Duration, collectionName string) {
-	mgoSession, err := mgo.Dial(conf["MONGO"])
-	if err != nil {
-		panic(err)
-	}
- mgoSession.SetMode(mgo.Monotonic, true)
- defer mgoSession.Close()
-	quit := make(chan bool)
-	z := Tweets(query, timeout, quit)
+func StoreTweets(query url.Values, timeout time.Duration, collectionName string) (retChan chan bool) {
+ retChan = make(chan bool)
+ quit := make(chan bool)
+ z := Tweets(query, timeout, quit)
+ go func() {
+ 	mgoSession, err := mgo.Dial(conf["MONGO"])
+ 	if err != nil {
+ 		panic(err)
+ 	}
+  mgoSession.SetMode(mgo.Monotonic, true)
+  defer mgoSession.Close()
 	for {
 		select {
 		case x := <-z:
@@ -81,11 +81,12 @@ func StoreTweets(query url.Values, timeout time.Duration, collectionName string)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(x.Id)
 		case <-quit:
-			fmt.Println("break " + collectionName)
+			retChan <- true
 			return
 		}
 	}
+ }()
+ return
 }
 
