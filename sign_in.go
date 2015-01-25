@@ -194,7 +194,7 @@ func ServeHome(w http.ResponseWriter, r *http.Request, cred *oauth.Credentials) 
 		Respond(w, HomeLoggedOutTmpl, nil)
 	} else {
 		fmt.Println(cred.Token, " ", cred.Secret)
-		UserEntry(cred)
+		// UserEntry(cred)
 		Respond(w, HomeTmpl, nil)
 	}
 }
