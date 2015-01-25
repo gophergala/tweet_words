@@ -30,7 +30,7 @@ func init() {
 }
 
 func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anaconda.Tweet {
-	stream, err := TwitterApi.PublicStreamFilter(query)
+	stream, err := TwitterApi.UserStream(query) //PublicStreamFilter ?
 	if err != nil {
 		panic(err)
 	}
@@ -55,6 +55,7 @@ func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anac
 	}()
 	return tweetChan
 }
+
 
 func StoreTweets(query url.Values, timeout time.Duration, collectionName string) (retChan chan bool) {
 	retChan = make(chan bool)
