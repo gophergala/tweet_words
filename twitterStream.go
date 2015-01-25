@@ -1,20 +1,21 @@
 package tweet_words
 
 import (
+	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/robfig/config"
 	"gopkg.in/mgo.v2"
 	"net/url"
+	"strings"
 	"time"
-	"fmt"
 )
 
 var TwitterApi *anaconda.TwitterApi
-var conf map[string]string
+var Conf map[string]string
 
 type TweetStore struct {
-	TwitterURL string
-	Tweet string
+	TwitterURL     string
+	Tweet          string
 	Classification string
 }
 
@@ -23,17 +24,17 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	conf = make(map[string]string)
+	Conf = make(map[string]string)
 	var keys = []string{"CONSUMER_KEY", "CONSUMER_SECRET", "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET", "MONGO"}
 	for key := range keys {
-		conf[keys[key]], err = myconf.String("", keys[key])
+		Conf[keys[key]], err = myconf.String("", keys[key])
 		if err != nil {
 			panic(err)
 		}
 	}
-	anaconda.SetConsumerKey(conf["CONSUMER_KEY"])
-	anaconda.SetConsumerSecret(conf["CONSUMER_SECRET"])
-	TwitterApi = anaconda.NewTwitterApi(conf["ACCESS_TOKEN"], conf["ACCESS_TOKEN_SECRET"])
+	anaconda.SetConsumerKey(Conf["CONSUMER_KEY"])
+	anaconda.SetConsumerSecret(Conf["CONSUMER_SECRET"])
+	TwitterApi = anaconda.NewTwitterApi(Conf["ACCESS_TOKEN"], Conf["ACCESS_TOKEN_SECRET"])
 }
 
 func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anaconda.Tweet {
@@ -63,13 +64,12 @@ func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anac
 	return tweetChan
 }
 
-
 func StoreTweets(query url.Values, timeout time.Duration, collectionName string) (retChan chan bool) {
 	retChan = make(chan bool)
 	quit := make(chan bool)
 	tweetsChan := Tweets(query, timeout, quit)
 	go func() {
-		mgoSession, err := mgo.Dial(conf["MONGO"])
+		mgoSession, err := mgo.Dial(Conf["MONGO"])
 		if err != nil {
 			panic(err)
 		}
@@ -85,9 +85,9 @@ func StoreTweets(query url.Values, timeout time.Duration, collectionName string)
 				if col == nil {
 					panic("unable to get collection")
 				}
-				twitterUrl=fmt.Sprintf("https://www.twitter.com/%s/status/%s", tweet.User.ScreenName,tweet.IdStr)
+				twitterUrl = fmt.Sprintf("https://www.twitter.com/%s/status/%s", tweet.User.ScreenName, tweet.IdStr)
+				tweet.Text = strings.Replace(tweet.Text, "\n", "", -1)
 				classification = ClassifyTweet(tweet.Text)
-				fmt.Println(tweet.Text)
 				err = col.Insert(&TweetStore{twitterUrl, tweet.Text, classification})
 				if err != nil {
 					panic(err)

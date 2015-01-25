@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jbrukh/bayesian"
 	"io/ioutil"
-	"os"
 	"strings"
 )
 
@@ -57,40 +55,16 @@ func removeStopWords(stopWords map[string]bool, datList []string) (datListNoStop
 
 func main() {
 
-	stopWords := createMapOfStopWord("stopwords.txt")
 	const (
 		Positive bayesian.Class = "Positive"
 		Negative bayesian.Class = "Negative"
 	)
 
+	stopWords := createMapOfStopWord("stopwords.txt")
 	classifier := bayesian.NewClassifier(Positive, Negative)
-
 	goodStuff := removeStopWords(stopWords, convFileToListWords("training-1.txt"))
 	badStuff := removeStopWords(stopWords, convFileToListWords("training-0.txt"))
 	classifier.Learn(goodStuff, Positive)
 	classifier.Learn(badStuff, Negative)
-
-	if _, err := os.Stat("classifier.gob"); os.IsNotExist(err) {
-		fmt.Println("Classifier file not found. Creating one ...")
-		classifier.WriteToFile("classifier.gob")
-	} else {
-		fmt.Println("Comparing Classifiers")
-		classifier2, err := bayesian.NewClassifierFromFile("classifier.gob")
-		check(err)
-		dat := readFromFile("dumpText.txt")
-		testdata := strings.Split(string(dat), "\n")
-
-		for _, data := range testdata {
-			dataL := strings.Split(data, " ")
-			_, likely2, _ := classifier2.LogScores(dataL)
-			_, likely, _ := classifier.LogScores(dataL)
-			if classifier.Classes[likely] != classifier.Classes[likely2] {
-
-				//print if the current classifier behaved differenly for some data
-				fmt.Println(data, classifier.Classes[likely])
-			}
-		}
-		classifier.WriteToFile("classifier.gob")
-	}
-
+	classifier.WriteToFile("classifier.gob")
 }

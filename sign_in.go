@@ -32,8 +32,6 @@ var (
 
 var SigninOAuthClient oauth.Client
 
-var CredPath = flag.String("config", "tweet_words/config.json", "Path to configuration file containing the application's credentials.")
-
 // authHandler reads the auth cookie and invokes a handler with the result.
 type AuthHandler struct {
 	handler  func(w http.ResponseWriter, r *http.Request, c *oauth.Credentials)
@@ -45,13 +43,8 @@ func Home() {
 	http.Handle("/", &AuthHandler{handler: ServeHome, optional: true})
 }
 
-func ReadCredentials() error {
-	fmt.Println("ReadCredentials")
-	b, err := ioutil.ReadFile(*CredPath)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, &OauthClient.Credentials)
+func ReadCredentials() {
+	OauthClient.Credentials = oauth.Credentials{Conf["CONSUMER_KEY"], Conf["CONSUMER_SECRET"]}
 }
 
 func PutCredentials(cred *oauth.Credentials) {
