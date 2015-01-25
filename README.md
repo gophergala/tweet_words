@@ -18,3 +18,7 @@ MONGO=mongodb://
 * Go to the classifier_train directory and create the classifier.gob file as per the instructions in the README file. Copy the classifier.gob to the executable directory
 
 * After you have app.properties and classifier.gob ready. You can execute the application by running.
+
+
+Copy /bower_components/ and main.go outside tweetwords folder and run
+> go run main.go
