@@ -15,6 +15,9 @@ type User struct {
 
 var GUser User
 
+//var KeywordsArray = []string{"test"}
+var KeywordsArray = make(map[string][]string)
+
 func StoreUser(user User) (ret bool) {
 		mgoSession, err := mgo.Dial("mongodb://54.188.201.254")
 		if err != nil {
@@ -34,9 +37,7 @@ func StoreUser(user User) (ret bool) {
 		result := User{}
 		fmt.Println(bson.M{"token": user.Token})
 		err = col.Find(bson.M{"token": user.Token}).One(&result)
-		fmt.Println("Token1:", result)
 		if result.Token == "" {
-			fmt.Println(user)
 			dummy := []string{"bjp"}
 			err = col.Insert(&User{user.Token, user.Secret, dummy})
 			if err != nil {
@@ -45,12 +46,8 @@ func StoreUser(user User) (ret bool) {
 		}
 		err = col.Find(bson.M{"token": user.Token}).One(&result)
 		if err != nil {
-			fmt.Println("sdfsd")
             log.Fatal(err)
         }
-        r, _ = db.CollectionNames()
-        fmt.Println(r)
-        fmt.Println("Token StoreUser:", result)
 	return
 }
 
@@ -85,7 +82,47 @@ func StoreKeywords(data string) (ret bool) {
 	if err != nil {
         log.Fatal(err)
     }
-    fmt.Println("token:", result1)
-
 	return
+}
+
+func GetKeywords() (ret []string) {
+	mgoSession, err := mgo.Dial("mongodb://54.188.201.254")
+	if err != nil {
+		panic(err)
+	}
+	mgoSession.SetMode(mgo.Monotonic, true)
+	defer mgoSession.Close()
+	newSes := mgoSession.Copy()
+	defer newSes.Close()
+	col := newSes.DB("test").C("User")
+	if col == nil {
+		panic("unable to get collection")
+	}
+	result := User{}
+	err = col.Find(bson.M{"token": GUser.Token}).One(&result)
+	if err != nil {
+        log.Fatal(err)
+    }
+    return result.Keywords
+}
+
+func GetTweets(keyValue string) (retValue []TweetStore){
+		mgoSession, err := mgo.Dial("mongodb://54.188.201.254")
+	if err != nil {
+		panic(err)
+	}
+	mgoSession.SetMode(mgo.Monotonic, true)
+	defer mgoSession.Close()
+	newSes := mgoSession.Copy()
+	defer newSes.Close()
+	col := newSes.DB("test").C(keyValue)
+	if col == nil {
+		panic("unable to get collection")
+	}
+	result := []TweetStore{}
+	err = col.Find(bson.M{}).All(&result)
+	if err != nil {
+        log.Fatal(err)
+    }
+    return result
 }

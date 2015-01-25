@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var HttpAddr = flag.String("addr", ":8080", "HTTP server address")
+var HttpAddr = flag.String("addr", "localhost:8080", "HTTP server address")
 
 var Chttp = http.NewServeMux()
 
@@ -51,7 +51,6 @@ func PutCredentials(cred *oauth.Credentials) {
 	fmt.Println("PutCredentials")
 	secretsMutex.Lock()
 	defer secretsMutex.Unlock()
-	fmt.Println(cred)
 	Secrets[cred.Token] = cred.Secret
 }
 
@@ -172,7 +171,7 @@ func DecodeResponse(resp *http.Response, data interface{}) error {
 func Respond(w http.ResponseWriter, t *template.Template, data interface{}) {
 	fmt.Println("Respond")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := t.Execute(w, data); err != nil {
+	if err := t.Execute(w, KeywordsArray); err != nil {
 		log.Print(err)
 	}
 }
@@ -184,13 +183,13 @@ func ServeHome(w http.ResponseWriter, r *http.Request, cred *oauth.Credentials) 
 		return
 	}
 	if cred == nil {
-		Respond(w, HomeLoggedOutTmpl, nil)
+		Respond(w, HomeLoggedOutTmpl, "loggedout")
 	} else {
-		fmt.Println(cred.Token, " ", cred.Secret)
 		user := User{cred.Token, cred.Secret, nil}
 		GUser = user
 		StoreUser(user)
-		Respond(w, HomeTmpl, nil)
+		GetKeywordsList()
+		Respond(w, HomeTmpl, KeywordsArray)
 	}
 }
 
@@ -198,11 +197,30 @@ func ServeHome(w http.ResponseWriter, r *http.Request, cred *oauth.Credentials) 
 var (
 	HomeLoggedOutTmpl, _ = template.ParseFiles("tweet_words/index.html")
 
-	HomeTmpl, _ = template.ParseFiles("tweet_words/mainPage.html")
+	// HomeTmpl, _ = template.ParseFiles("tweet_words/mainPage.html")
+
+	HomeTmpl, _ = template.ParseFiles("tweet_words/mainPage1.html")
 )
 
-func StoreKeyword(w http.ResponseWriter, r *http.Request) {
+func StoreKeywordServ(w http.ResponseWriter, r *http.Request) {
 	keyValue := r.URL.Query()
 	StoreKeywords(keyValue["keyword"][0])
-	Respond(w, HomeTmpl, nil)
+	x := 10 * time.Minute
+	xyz := url.Values{}
+	xyz.Set("track",keyValue["keyword"][0])
+	xyz.Add("language","en")
+	z:=StoreTweets(xyz, x, keyValue["keyword"][0])
+	go func() { <-z }()
+	GetKeywordsList()
+	Respond(w, HomeTmpl, keyValue)
+}
+
+func GetKeywordsList() {
+	KeywordsArray["keywords"] = GetKeywords()
+}
+
+func GetKeywordsServ(w http.ResponseWriter, r *http.Request) {
+	keyValue := r.URL.Query()
+	KeywordsArray1 := GetTweets(keyValue["keyword"][0])
+	Respond(w, HomeTmpl, KeywordsArray1)
 }
