@@ -9,3 +9,4 @@ ACCESS_TOKEN=
 ACCESS_TOKEN_SECRET=
 MONGO=mongodb://
 
+Copy the classifier.gob to the executable directory

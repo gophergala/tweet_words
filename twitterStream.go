@@ -6,10 +6,17 @@ import (
 	"gopkg.in/mgo.v2"
 	"net/url"
 	"time"
+	"fmt"
 )
 
 var TwitterApi *anaconda.TwitterApi
 var conf map[string]string
+
+type TweetStore struct {
+	TwitterURL string
+	Tweet string
+	Classification string
+}
 
 func init() {
 	myconf, err := config.ReadDefault("app.properties")
@@ -60,7 +67,7 @@ func Tweets(query url.Values, timeout time.Duration, quit chan bool) <-chan anac
 func StoreTweets(query url.Values, timeout time.Duration, collectionName string) (retChan chan bool) {
 	retChan = make(chan bool)
 	quit := make(chan bool)
-	z := Tweets(query, timeout, quit)
+	tweetsChan := Tweets(query, timeout, quit)
 	go func() {
 		mgoSession, err := mgo.Dial(conf["MONGO"])
 		if err != nil {
@@ -68,16 +75,20 @@ func StoreTweets(query url.Values, timeout time.Duration, collectionName string)
 		}
 		mgoSession.SetMode(mgo.Monotonic, true)
 		defer mgoSession.Close()
+		var twitterUrl, classification string
 		for {
 			select {
-			case x := <-z:
+			case tweet := <-tweetsChan:
 				newSes := mgoSession.Copy()
 				defer newSes.Close()
 				col := newSes.DB("test").C(collectionName)
 				if col == nil {
 					panic("unable to get collection")
 				}
-				err = col.Insert(x)
+				twitterUrl=fmt.Sprintf("https://www.twitter.com/%s/status/%s", tweet.User.ScreenName,tweet.IdStr)
+				classification = ClassifyTweet(tweet.Text)
+				fmt.Println(tweet.Text)
+				err = col.Insert(&TweetStore{twitterUrl, tweet.Text, classification})
 				if err != nil {
 					panic(err)
 				}
