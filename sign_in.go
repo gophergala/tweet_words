@@ -194,7 +194,9 @@ func ServeHome(w http.ResponseWriter, r *http.Request, cred *oauth.Credentials) 
 		Respond(w, HomeLoggedOutTmpl, nil)
 	} else {
 		fmt.Println(cred.Token, " ", cred.Secret)
-		// UserEntry(cred)
+		user := User{cred.Token, cred.Secret, nil}
+		GUser = user
+		StoreUser(user)
 		Respond(w, HomeTmpl, nil)
 	}
 }
@@ -205,3 +207,9 @@ var (
 
 	HomeTmpl, _ = template.ParseFiles("tweet_words/mainPage.html")
 )
+
+func StoreKeyword(w http.ResponseWriter, r *http.Request) {
+	keyValue := r.URL.Query()
+	StoreKeywords(keyValue["keyword"][0])
+	Respond(w, HomeTmpl, nil)
+}
